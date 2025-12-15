@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biodynamic Moon Cycles v1.5 (Vineyard Edition)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f19; color: #e2e8f0; overflow-x: hidden; }
+        
+        /* Background Space Shot */
+        .space-bg {
+            position: fixed;
+            top: 0; right: 0;
+            width: 100vw; height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover;
+            background-position: top right;
+            z-index: -1;
+            /* Gradient Mask to fade it out */
+            mask-image: linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 80%);
+            -webkit-mask-image: linear-gradient(to bottom left, rgba(0,0,0,1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0) 80%);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        
+        /* Range Slider Styling */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px; width: 24px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
+            border: 2px solid #0f172a;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+
+        /* Moon Container */
+        .moon-visual-container {
+            width: 220px;
+            height: 220px;
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(165, 200, 255, 0.15);
+            background-color: #000;
+        }
+        
+        /* The Moon Texture Image */
+        .moon-texture {
+            width: 100%;
+            height: 100%;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg');
+            background-size: 105%;
+            background-position: center;
+            position: absolute;
+            top: 0; left: 0;
+            filter: grayscale(100%) contrast(120%);
+            transition: transform 0.5s ease;
+        }
+
+        /* Canvas for Shadow Overlay */
+        #moonRenderCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 10;
+        }
+
+        /* Enhanced Tooltip */
+        .tooltip { 
+            visibility: hidden; 
+            position: absolute; 
+            background-color: rgba(15, 23, 42, 0.98); 
+            backdrop-filter: blur(20px);
+            color: #fff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            z-index: 60; 
+            width: 400px; /* Wider for deep synthesis */
+            bottom: 110%; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(255,255,255,0.1); 
+            border: 1px solid rgba(148, 163, 184, 0.2); 
+            opacity: 0; 
+            transition: all 0.2s ease-out; 
+            pointer-events: none; 
+            font-size: 0.85rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-5px); }
+        .has-tooltip { position: relative; cursor: help; transition: transform 0.2s; }
+        .has-tooltip:hover { transform: translateY(-2px); }
+
+        .card { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        
+        .bg-gradient-moon { background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.15), transparent 70%); }
+
+        /* Tooltip Section Headers */
+        .tt-header { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+        .tt-section { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .tt-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-7xl mx-auto min-h-screen flex flex-col relative">
+
+    <div class="space-bg"></div>
+
+    <!-- HEADER -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 z-10">
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <h1 class="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sky-200 via-sky-400 to-indigo-400">Biodynamic Live</h1>
+                <span class="px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-400 text-[10px] font-bold tracking-widest">v1.5</span>
+            </div>
+            <p class="text-slate-300 font-light tracking-wide">Astronomical precision for viticulture & organic growth.</p>
+        </div>
+        
+        <div class="flex items-center gap-4 bg-slate-900/60 backdrop-blur-md p-3 rounded-xl border border-slate-700/50 shadow-2xl">
+            <div class="text-right mr-2">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Location</div>
+                <div class="text-sm font-semibold text-sky-300" id="locationLabel">Southern Hemisphere</div>
+            </div>
+            <div class="flex bg-slate-800 rounded p-1">
+                <button id="btnNorth" class="px-4 py-2 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white" onclick="app.setHemisphere('north')">N</button>
+                <button id="btnSouth" class="px-4 py-2 text-xs font-bold rounded bg-sky-600 text-white shadow-[0_0_15px_rgba(2,132,199,0.5)] transition-colors" onclick="app.setHemisphere('south')">S</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TIMELINE SCRUBBER -->
+    <div class="card p-6 rounded-3xl mb-10 relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-sky-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+        
+        <div class="flex flex-col md:flex-row justify-between items-end mb-6 gap-4 relative z-10">
+            <div>
+                <label class="block text-sky-400 text-xs font-bold uppercase tracking-widest mb-1">Temporal Shift</label>
+                <div class="text-3xl font-light text-white tracking-tight" id="dateDisplay">Loading...</div>
+            </div>
+            <button onclick="app.resetToNow()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-900/50 transition-all flex items-center gap-2 border border-indigo-400/20 active:scale-95">
+                <span>⚡</span> SYNC TO NOW
+            </button>
+        </div>
+        
+        <div class="relative w-full h-14 flex items-center z-10">
+            <!-- Ticks -->
+            <div class="absolute w-full flex justify-between px-2 -top-1 pointer-events-none text-[10px] text-slate-500 font-mono">
+                <span>-28d</span>
+                <span>-14d</span>
+                <span class="text-sky-400 font-bold">TODAY</span>
+                <span>+14d</span>
+                <span>+28d</span>
+            </div>
+            <!-- Range increased to +/- 28 days -->
+            <input type="range" id="timeSlider" min="-28" max="28" step="0.1" value="0">
+        </div>
+        <div class="flex justify-center gap-8 text-[10px] uppercase tracking-widest text-slate-500 mt-1 font-bold">
+            <span>Past Cycle</span>
+            <span>Future Cycle</span>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+        
+        <!-- LEFT: VISUAL MOON (4 Columns) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="card rounded-3xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden bg-gradient-moon">
+                
+                <!-- The Realistic Moon -->
+                <div class="moon-visual-container mb-8">
+                    <div id="moonTexture" class="moon-texture"></div>
+                    <canvas id="moonRenderCanvas" width="220" height="220"></canvas>
+                </div>
+
+                <div class="space-y-1 mb-6">
+                    <h2 class="text-3xl font-bold text-white tracking-tight" id="phaseName">Full Moon</h2>
+                    <div class="text-sky-400 font-mono text-sm" id="illumination">100% Illumination</div>
+                </div>
+
+                <div class="w-full grid grid-cols-2 gap-3 text-left">
+                    <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/30 backdrop-blur-sm">
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Orbit Distance</div>
+                        <div class="text-slate-100 font-semibold tabular-nums" id="distLabel">384,400 km</div>
+                    </div>
+                    <div class="bg-slate-900/40 p-3 rounded-xl border border-slate-700/30 backdrop-blur-sm">
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Next Phase</div>
+                        <div class="text-slate-100 font-semibold" id="nextPhaseLabel">Last Quarter</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Draconic Node Alert -->
+            <div id="nodeAlert" class="hidden bg-red-500/10 border border-red-500/50 rounded-2xl p-5 flex items-start gap-4 animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.15)]">
+                <div class="text-3xl">⛔</div>
+                <div>
+                    <h3 class="font-bold text-red-400">Moon Node Crossing</h3>
+                    <p class="text-xs text-red-200/80 mt-1 leading-relaxed">The moon is crossing the Earth's ecliptic plane (Draconic Node). Cosmic influences are unstable. <strong class="text-red-300">Vineyard Recommendation:</strong> Stop all pruning, tillage, and harvesting for 12 hours.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: BIODYNAMIC DATA (8 Columns) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <!-- 1. The Wave Chart -->
+            <div class="card p-1 rounded-3xl relative overflow-hidden h-72">
+                <div class="absolute inset-0 bg-slate-900/50 z-0"></div>
+                <div class="absolute top-5 left-6 z-10">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Rhythmic Overview</h3>
+                    <p class="text-[10px] text-slate-600">Showing +/- 10 days context</p>
+                </div>
+                <div class="absolute top-5 right-6 flex gap-4 z-10 text-[10px] font-bold tracking-wider">
+                    <span class="text-sky-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-sky-400"></span> LIGHT</span>
+                    <span class="text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> PATH</span>
+                    <span class="text-purple-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-400"></span> DISTANCE</span>
+                </div>
+                <canvas id="chartCanvas" class="w-full h-full relative z-0"></canvas>
+            </div>
+
+            <!-- 2. Detailed Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                
+                <!-- Path / Declination -->
+                <div class="card p-6 rounded-2xl has-tooltip border-l-4 border-emerald-500 group hover:bg-slate-800/80 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs text-emerald-500/80 uppercase font-bold tracking-wider">Path (Tropical)</span>
+                        <span id="pathIcon" class="text-2xl filter drop-shadow-lg">🌱</span>
+                    </div>
+                    <div class="text-xl font-bold text-white mb-1 group-hover:text-emerald-300 transition-colors" id="pathStatus">Descending</div>
+                    <p class="text-xs text-slate-400 leading-relaxed" id="pathDesc">Sap flowing down.</p>
+                    
+                    <!-- DYNAMIC 3-LAYER TOOLTIP -->
+                    <div class="tooltip text-left" id="pathTooltip">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Constellation / Sidereal -->
+                <div class="card p-6 rounded-2xl has-tooltip border-l-4 border-amber-500 group hover:bg-slate-800/80 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs text-amber-500/80 uppercase font-bold tracking-wider">Constellation</span>
+                        <span id="zodiacIcon" class="text-2xl filter drop-shadow-lg">🦁</span>
+                    </div>
+                    <div class="text-xl font-bold text-white mb-1 group-hover:text-amber-300 transition-colors" id="zodiacName">Leo</div>
+                    <p class="text-xs text-slate-400 leading-relaxed" id="zodiacType">Fruit Day (Fire)</p>
+                    
+                    <!-- DYNAMIC 3-LAYER TOOLTIP -->
+                    <div class="tooltip text-left" id="zodiacTooltip">
+                         <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Distance -->
+                <div class="card p-6 rounded-2xl has-tooltip border-l-4 border-purple-500 group hover:bg-slate-800/80 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-xs text-purple-500/80 uppercase font-bold tracking-wider">Distance</span>
+                        <span id="distIcon" class="text-2xl filter drop-shadow-lg">📏</span>
+                    </div>
+                    <div class="text-xl font-bold text-white mb-1 group-hover:text-purple-300 transition-colors" id="distStatus">Middle</div>
+                    <p class="text-xs text-slate-400 leading-relaxed" id="distDesc">Average orbit.</p>
+                    
+                    <!-- DYNAMIC 3-LAYER TOOLTIP -->
+                    <div class="tooltip text-left" id="distTooltip">
+                         <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW SECTION: COSMIC ACTION ENGINE -->
+    <div class="mb-10">
+        <div class="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+            <h2 class="text-2xl font-bold text-white">Cosmic Action Engine</h2>
+            <div class="h-px bg-slate-800 flex-grow hidden md:block"></div>
+            
+            <!-- MODE TOGGLE -->
+            <div class="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-700 self-start md:self-auto">
+                <span class="text-[10px] uppercase font-bold text-slate-500 px-2">Mode:</span>
+                <button id="modeGarden" class="px-3 py-1 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white" onclick="app.setMode('garden')">Garden</button>
+                <button id="modeVineyard" class="px-3 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow-lg transition-colors" onclick="app.setMode('vineyard')">Vineyard Pro</button>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Dynamic Recommendation Card -->
+            <div class="col-span-1 md:col-span-2 card rounded-2xl p-6 bg-gradient-to-br from-slate-800 to-indigo-900/30 border-indigo-500/30 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">🍷</div>
+                <h3 class="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-2" id="actionTitle">Primary Viticulture Task</h3>
+                <div class="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight" id="primaryAction">Harvesting Fruits</div>
+                <p class="text-slate-300 text-sm leading-relaxed" id="primaryReason">Moon in Fire Sign (Leo) supports ripening. Ascending path lifts sap to fruits.</p>
+            </div>
+
+            <!-- Solar Info -->
+            <div class="card rounded-2xl p-6 has-tooltip">
+                <h3 class="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Solar Phenology</h3>
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">☀️</span>
+                    <div>
+                        <div class="text-lg font-bold text-white" id="vinePhase">Dormancy</div>
+                        <div class="text-xs text-slate-400" id="sunSign">Sun in Virgo</div>
+                    </div>
+                </div>
+                <!-- DYNAMIC SOLAR TOOLTIP -->
+                <div class="tooltip text-left" id="solarTooltip" style="bottom: 100%;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Avoidance Info -->
+            <div class="card rounded-2xl p-6">
+                <h3 class="text-red-400 text-xs font-bold uppercase tracking-widest mb-2">Caution</h3>
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">⚠️</span>
+                    <div>
+                        <div class="text-lg font-bold text-white" id="cautionAction">None</div>
+                        <div class="text-xs text-slate-400">Current Restrictions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPANDED FOOTER INFO -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm text-slate-400">
+        <div class="card p-5 rounded-xl border-t-2 border-sky-500">
+            <strong class="block text-sky-400 mb-2 uppercase text-xs tracking-wider">1. Synodic (29.5 Days)</strong>
+            <p class="text-xs leading-relaxed">The Phase cycle. <strong>Waxing (Light):</strong> High moisture, disease pressure. Keep canopy open. <strong>Waning (Dark):</strong> Moisture sinks. Good for deep cultivation and root sprays.</p>
+        </div>
+        <div class="card p-5 rounded-xl border-t-2 border-emerald-500">
+            <strong class="block text-emerald-400 mb-2 uppercase text-xs tracking-wider">2. Tropical (27.3 Days)</strong>
+            <p class="text-xs leading-relaxed">The Declination. <strong>Ascending:</strong> Apply Prep 501 (Silica) early morning. <strong>Descending:</strong> Apply Prep 500 (Manure) late afternoon. Pruning and Racking.</p>
+        </div>
+        <div class="card p-5 rounded-xl border-t-2 border-amber-500">
+            <strong class="block text-amber-400 mb-2 uppercase text-xs tracking-wider">3. Sidereal (27.3 Days)</strong>
+            <p class="text-xs leading-relaxed">The Elements. <strong>Fire:</strong> Harvest/Sugar. <strong>Earth:</strong> Roots/Tillage. <strong>Air:</strong> Flowering/Light. <strong>Water:</strong> Leaf growth/Irrigation (avoid pruning).</p>
+        </div>
+        <div class="card p-5 rounded-xl border-t-2 border-purple-500">
+            <strong class="block text-purple-400 mb-2 uppercase text-xs tracking-wider">4. Draconic (27.2 Days)</strong>
+            <p class="text-xs leading-relaxed">The Node cycle. Critical interruption points. <strong>Vineyard Rule:</strong> No disturbance. Do not spray, prune, or harvest during node crossings.</p>
+        </div>
+    </div>
+    
+    <div class="mt-8 text-center text-[10px] text-slate-600 font-mono">
+        System Local Time: <span id="systemTime"></span> | Version 1.5 | <span id="modeLabelFooter">Vineyard Pro</span>
+    </div>
+
+    <script>
+        /**
+         * ASTRONOMICAL ENGINE v1.5
+         */
+        const Astro = {
+            RAD: Math.PI / 180,
+            DEG: 180 / Math.PI,
+
+            normalize: function(deg) {
+                deg = deg % 360;
+                if (deg < 0) deg += 360;
+                return deg;
+            },
+
+            getJulianDate: function(date) {
+                return (date.getTime() / 86400000) - (date.getTimezoneOffset() / 1440) + 2440587.5;
+            },
+
+            calculate: function(date) {
+                const jd = this.getJulianDate(date);
+                const T = (jd - 2451545.0) / 36525;
+                const L_prime = this.normalize(218.3164477 + 481267.88123421 * T);
+                const D = this.normalize(297.8501921 + 445267.1114034 * T);
+                const M = this.normalize(357.5291092 + 35999.0502909 * T);
+                const M_prime = this.normalize(134.9633964 + 477198.8675055 * T);
+                const F = this.normalize(93.2720950 + 483202.0175381 * T);
+
+                const lambda = L_prime 
+                             + 6.289 * Math.sin(M_prime * this.RAD)
+                             - 1.274 * Math.sin((2*D - M_prime) * this.RAD)
+                             + 0.658 * Math.sin(2*D * this.RAD)
+                             - 0.186 * Math.sin(M * this.RAD);
+                
+                const ayanamsa = 24.1; 
+                const siderealLongitude = this.normalize(lambda - ayanamsa);
+
+                const L_prime_sun = this.normalize(280.46646 + 36000.76983 * T);
+                const C = 1.914602 * Math.sin(M * this.RAD) + 0.019993 * Math.sin(2 * M * this.RAD);
+                const sunLambda = this.normalize(L_prime_sun + C);
+                const sunSidereal = this.normalize(sunLambda - ayanamsa);
+
+                const beta = 5.128 * Math.sin(F * this.RAD);
+
+                const distance = 385000.56 
+                               - 20905.355 * Math.cos(M_prime * this.RAD)
+                               - 3699.111 * Math.cos((2*D - M_prime) * this.RAD);
+                
+                const epsilon = 23.439 * this.RAD;
+                const lambdaRad = lambda * this.RAD;
+                const betaRad = beta * this.RAD;
+                const sinDelta = Math.sin(betaRad)*Math.cos(epsilon) + Math.cos(betaRad)*Math.sin(epsilon)*Math.sin(lambdaRad);
+                const declination = Math.asin(sinDelta) * this.DEG;
+
+                let phaseAngle = this.normalize(D);
+                const illumination = (1 - Math.cos(phaseAngle * this.RAD)) / 2;
+
+                return {
+                    jd, siderealLongitude, sunSidereal, latitude: beta, 
+                    distance, declination, phaseAngle, illumination
+                };
+            }
+        };
+
+        /**
+         * APP LOGIC
+         */
+        const app = {
+            hemisphere: 'south',
+            mode: 'vineyard',
+            currentOffset: 0,
+            
+            zodiac: [
+                {name: "Aries", type: "Fruit (Fire)", element:"fire", icon: "🐏", color: "#ef4444", start: 0},
+                {name: "Taurus", type: "Root (Earth)", element:"earth", icon: "🐂", color: "#a8a29e", start: 30},
+                {name: "Gemini", type: "Flower (Air)", element:"air", icon: "👯", color: "#fef08a", start: 60},
+                {name: "Cancer", type: "Leaf (Water)", element:"water", icon: "🦀", color: "#3b82f6", start: 90},
+                {name: "Leo", type: "Fruit (Fire)", element:"fire", icon: "🦁", color: "#ef4444", start: 120},
+                {name: "Virgo", type: "Root (Earth)", element:"earth", icon: "👧", color: "#a8a29e", start: 150},
+                {name: "Libra", type: "Flower (Air)", element:"air", icon: "⚖️", color: "#fef08a", start: 180},
+                {name: "Scorpio", type: "Leaf (Water)", element:"water", icon: "🦂", color: "#3b82f6", start: 210},
+                {name: "Sagittarius", type: "Fruit (Fire)", element:"fire", icon: "🏹", color: "#ef4444", start: 240},
+                {name: "Capricorn", type: "Root (Earth)", element:"earth", icon: "🐐", color: "#a8a29e", start: 270},
+                {name: "Aquarius", type: "Flower (Air)", element:"air", icon: "🏺", color: "#fef08a", start: 300},
+                {name: "Pisces", type: "Leaf (Water)", element:"water", icon: "🐟", color: "#3b82f6", start: 330}
+            ],
+
+            init: function() {
+                this.setHemisphere('south');
+                
+                document.getElementById('timeSlider').addEventListener('input', (e) => {
+                    this.currentOffset = parseFloat(e.target.value);
+                    this.update();
+                });
+
+                window.addEventListener('resize', () => this.drawChart());
+                this.resetToNow();
+                
+                setInterval(() => {
+                    document.getElementById('systemTime').innerText = new Date().toLocaleTimeString();
+                }, 1000);
+
+                this.setMode('vineyard'); 
+            },
+
+            setHemisphere: function(h) {
+                this.hemisphere = h;
+                const btnN = document.getElementById('btnNorth');
+                const btnS = document.getElementById('btnSouth');
+                const label = document.getElementById('locationLabel');
+                const moonTex = document.getElementById('moonTexture');
+
+                if(h === 'north') {
+                    btnN.className = "px-4 py-2 text-xs font-bold rounded bg-sky-600 text-white shadow-[0_0_15px_rgba(2,132,199,0.5)] transition-colors";
+                    btnS.className = "px-4 py-2 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white";
+                    label.innerText = "Northern Hemisphere";
+                    moonTex.style.transform = "scaleX(1) scaleY(1) rotate(0deg)"; 
+                } else {
+                    btnS.className = "px-4 py-2 text-xs font-bold rounded bg-sky-600 text-white shadow-[0_0_15px_rgba(2,132,199,0.5)] transition-colors";
+                    btnN.className = "px-4 py-2 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white";
+                    label.innerText = "Southern Hemisphere";
+                    moonTex.style.transform = "scaleX(-1) scaleY(-1) rotate(180deg)"; 
+                }
+                this.update();
+            },
+
+            setMode: function(m) {
+                this.mode = m;
+                const btnG = document.getElementById('modeGarden');
+                const btnV = document.getElementById('modeVineyard');
+                const footerLabel = document.getElementById('modeLabelFooter');
+                const actionTitle = document.getElementById('actionTitle');
+
+                if (m === 'vineyard') {
+                    btnV.className = "px-3 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow-lg transition-colors";
+                    btnG.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white";
+                    footerLabel.innerText = "Vineyard Pro";
+                    actionTitle.innerText = "Primary Viticulture & Cellar Task";
+                } else {
+                    btnG.className = "px-3 py-1 text-xs font-bold rounded bg-indigo-600 text-white shadow-lg transition-colors";
+                    btnV.className = "px-3 py-1 text-xs font-bold rounded transition-colors text-slate-400 hover:text-white";
+                    footerLabel.innerText = "Standard Garden";
+                    actionTitle.innerText = "Primary Garden Task";
+                }
+                this.update();
+            },
+
+            resetToNow: function() {
+                this.currentOffset = 0;
+                document.getElementById('timeSlider').value = 0;
+                this.update();
+            },
+
+            getZodiacFromLongitude: function(lon) {
+                const idx = Math.floor(lon / 30) % 12;
+                return this.zodiac[idx];
+            },
+
+            // --- IMPROVED SOLAR PHENOLOGY (North & South) ---
+            getVinePhase: function(sunSignName, hemisphere) {
+                const phases = {
+                    "South": {
+                        "Pisces": "Harvest / Post-Harvest",
+                        "Aries": "Leaf Fall / Soil Prep",
+                        "Taurus": "Early Dormancy",
+                        "Gemini": "Deep Dormancy",
+                        "Cancer": "Winter Pruning",
+                        "Leo": "Bud Burst",
+                        "Virgo": "Canopy Growth",
+                        "Libra": "Flowering",
+                        "Scorpio": "Fruit Set",
+                        "Sagittarius": "Berry Filling",
+                        "Capricorn": "Veraison (Color Change)",
+                        "Aquarius": "Ripening"
+                    },
+                    "North": {
+                        "Pisces": "Bud Burst / Weeping",
+                        "Aries": "Shoot Growth",
+                        "Taurus": "Flowering",
+                        "Gemini": "Fruit Set",
+                        "Cancer": "Berry Growth",
+                        "Leo": "Veraison (Color Change)",
+                        "Virgo": "Ripening / Harvest",
+                        "Libra": "Harvest / Post-Harvest",
+                        "Scorpio": "Leaf Fall",
+                        "Sagittarius": "Dormancy",
+                        "Capricorn": "Deep Dormancy",
+                        "Aquarius": "Winter Pruning"
+                    }
+                };
+                return phases[hemisphere][sunSignName] || "Seasonal Transition";
+            },
+
+            getSolarDescription: function(sunSignName, hemisphere) {
+                // Returns a context string based on the Sidereal Season
+                const isSouth = hemisphere === 'South';
+                
+                const contexts = {
+                    "Aries": isSouth 
+                        ? "Autumnal Energy. The sun is losing power, signaling the vine to withdraw sap into the roots. Time for soil preparation." 
+                        : "Vernal Energy. The sun awakens the vine. Sap pressure increases, pushing buds to break.",
+                    "Taurus": isSouth 
+                        ? "Cooling Earth. Dormancy begins. Energy solidifies in the trunk and roots." 
+                        : "Warming Earth. Rapid shoot elongation. The vine establishes its solar panels (leaves).",
+                    "Gemini": isSouth 
+                        ? "Deep Winter. The vine sleeps. Cosmic forces work entirely underground." 
+                        : "Light & Air. Flowering initiates. The vine reaches for the sky, moving from vegetative to reproductive focus.",
+                    "Cancer": isSouth 
+                        ? "Mid-Winter turning point. The sap begins to stir in the depths. Pruning decisions now shape the future." 
+                        : "Summer Solstice peak. Fruit set complete. The vine is fully vegetated and pushing energy into berries.",
+                    "Leo": isSouth 
+                        ? "Late Winter/Spring cusp. Warmth returns. Bud burst is imminent as sap rises." 
+                        : "High Summer heat. Veraison begins. The vine shifts metabolism from green growth to sugar accumulation.",
+                    "Virgo": isSouth 
+                        ? "Spring Equinox. Balance of day and night. Canopy growth is explosive." 
+                        : "Late Summer Harvest. Maturation is complete. The sun ripens the final tannins.",
+                    "Libra": isSouth 
+                        ? "Flowering. The vine breathes out. A delicate time requiring light and air." 
+                        : "Autumn Equinox. Post-harvest. The vine begins to store carbohydrates for winter.",
+                    "Scorpio": isSouth 
+                        ? "Fruit Set. The embryo of the vintage is formed. Water demands increase." 
+                        : "Leaf Fall. The vine sheds its solar panels. Sap flow reverses downward.",
+                    "Sagittarius": isSouth 
+                        ? "Summer warmth builds. Berries swell. The vine needs heat to synthesize acids and sugars." 
+                        : "Dormancy deepens. The soil digests organic matter.",
+                    "Capricorn": isSouth 
+                        ? "High Summer. Veraison. The vine stops growing shoots and focuses purely on the grape." 
+                        : "Deepest Winter. Crystallization forces in the soil are highest.",
+                    "Aquarius": isSouth 
+                        ? "Ripening. Sugar accumulation. The vine creates flavor compounds under the summer sun." 
+                        : "Late Winter. Roots begin to wake up before the canopy does.",
+                    "Pisces": isSouth 
+                        ? "Harvest. The culmination of the solar year. The fruit detaches from the vine's lifecycle." 
+                        : "Spring awakening. Sap bleeds from pruning cuts. The cycle restarts."
+                };
+                return contexts[sunSignName] || "Transitional solar period.";
+            },
+
+            // --- ADVANCED ACTION ENGINE ---
+            generateAdvice: function(sign, isAscending, isPerigee, isNode, phaseName) {
+                let action = "";
+                let reason = "";
+                let caution = "None";
+
+                if (isNode) {
+                    caution = "Moon Node Crossing";
+                    action = "Stop Work (Cellar & Field)";
+                    reason = "The Moon is crossing the ecliptic plane, creating a 'shadow' on cosmic forces. In the vineyard, seed germination fails and growth is chaotic. In the cellar, wines tasted now will appear disjointed or hollow. Pause all critical activities for 12 hours.";
+                    return { action, reason, caution };
+                }
+                if (isPerigee) {
+                    caution = "Perigee (Fungal Risk)";
+                    action = "Avoid Soil Disturbance";
+                    reason = "The Moon is closest to Earth, exerting maximum gravitational pull. Moisture is pulled to the surface, creating high fungal pressure. Disturbing the soil now releases spores into a humid microclimate. In the cellar, wines are 'nervous' and sediment may float.";
+                    return { action, reason, caution };
+                }
+
+                const element = sign.element; 
+                const path = isAscending ? "Ascending" : "Descending";
+
+                // --- VINEYARD PRO (VITICULTURE + ENOLOGY) ---
+                if (this.mode === 'vineyard') {
+                    if (path === "Ascending") {
+                        if (element === "fire") {
+                            action = "Harvest Reds / Crush / Prep 501";
+                            reason = "This is the 'Grand Cru' combination. The Ascending path pulls sap upwards into the fruit, maximizing turgidity and volume. The Fire element (Leo/Aries/Sag) concentrates sugars and synthesizes complex phenols. Harvest now for wines with great aging potential. In the cellar, natural yeasts are aggressive; manage fermentation temperatures carefully.";
+                        } else if (element === "air") {
+                            action = "Foliar Sprays / Bottling Whites";
+                            reason = "Light forces are dominant. The Ascending moon 'breathes out', expanding aromatics. This is the ideal window for bottling floral white wines (Riesling, Muscat) to capture volatile terpenes. In the vineyard, apply Prep 501 (Horn Silica) to structure the canopy and enhance photosynthesis.";
+                        } else if (element === "water") {
+                            action = "Monitor Fungal Pressure";
+                            reason = "A challenging combination. Water element + Ascending path creates a 'double wet' effect. The vine is swollen with water, and humidity is high. Do not prune, as wounds will bleed excessively and refuse to heal. Mildew spores are highly mobile. Avoid bottling, as wines may develop bacterial spoilage.";
+                        } else { // Earth
+                            action = "Grafting / Cuttings";
+                            reason = "Sap is rising strongly, but the Earth element keeps it grounded in structure. This is the perfect moment for grafting; the rising sap ensures the scion takes, while the Earth influence ensures the union is solid. Not recommended for wine tasting, as the 'Earth' influence makes tannins appear hard and fruit muted.";
+                        }
+                    } else {
+                        if (element === "earth") {
+                            action = "Racking / Prep 500 / Tillage";
+                            reason = "The 'Double Earth' effect. Gravity is maximized. In the cellar, this is the golden hour for Racking; sediment settles firmly to the bottom, allowing for ultra-clean transfers without filtration. In the vineyard, apply Prep 500 (Horn Manure) or till the soil, as the cosmic forces are being drawn deep into the root system.";
+                        } else if (element === "water") {
+                            action = "Compost Prep / Irrigation";
+                            reason = "Water forces are being internalized. Irrigation applied now penetrates deeply to the taproot rather than evaporating. It is an excellent time for building compost heaps, as the moisture will integrate thoroughly. In the cellar, wines may smell reductive (damp); introduce oxygen if racking, but avoid bottling.";
+                        } else if (element === "fire") {
+                            action = "Bottling Reds / Pruning";
+                            reason = "A unique balance: 'Dryness' (Fire) meets 'Settling' (Descending). This allows for Winter Pruning with zero risk of bleeding and instant wound cauterization. In the cellar, it is the best time to bottle robust red wines; they will settle quickly in the bottle and the Fire element adds a spark of warmth for longevity.";
+                        } else { // Air
+                            action = "Trellis Work / Filtering";
+                            reason = "Neutral and airy. The Descending path ensures stability, while the Air element ensures clarity. This is the best time for mechanical filtration if necessary, as the liquid passes through media cleanly. In the vineyard, attend to trellis structure and canopy trimming.";
+                        }
+                    }
+                } 
+                else {
+                    // Standard Garden Logic (simplified)
+                    if (path === "Ascending") {
+                        if (element === "fire" || element === "air") {
+                            action = "Harvesting & Preserving";
+                            reason = "Sap is rising and energy is concentrated in the fruits and seeds. Harvest now for long storage life and peak flavor.";
+                        } else {
+                            action = "Sowing Above Ground";
+                            reason = "Water forces are rising. Sow leafy greens and flowers that grow upwards. Energy is moving away from the roots.";
+                        }
+                    } else {
+                        if (element === "earth") {
+                            action = "Transplanting & Roots";
+                            reason = "Energy is moving down into the soil. Perfect for transplanting (reduced shock) and harvesting root crops (carrots, potatoes).";
+                        } else if (element === "water") {
+                            action = "Watering & Leafy Transplants";
+                            reason = "Leaf day with inward energy. Plants recover quickly from handling. Watering now is highly efficient.";
+                        } else {
+                            action = "Composting & Soil Prep";
+                            reason = "Descending energy helps integrate organic matter into the soil life. Build the soil structure now.";
+                        }
+                    }
+                }
+                
+                return { action, reason, caution };
+            },
+
+            // --- DEEP SYNTHESIS TOOLTIPS ---
+            getDeepVitiContext: function(sign, isAscending) {
+                const element = sign.element;
+                const pathStr = isAscending ? "Ascending" : "Descending";
+                const combo = `${element}-${pathStr}`;
+
+                const db = {
+                    "fire-Ascending": {
+                        synthesis: "Heat forces are rising and expanding. Sugar accumulation is peak.",
+                        field: "Harvest grapes for full-bodied wines. Apply Prep 501 (Horn Silica) at sunrise to crystallize light forces. Avoid irrigation.",
+                        cellar: "Yeast activity is vigorous. Fermentations will run hot and fast. Bottling now locks in warmth and longevity (ideal for aging reds)."
+                    },
+                    "fire-Descending": {
+                        synthesis: "Warmth is being drawn into the soil. A grounding of the fire element.",
+                        field: "Excellent for winter pruning; the drying influence cauterizes wounds immediately. Good for 'blind' cultivation.",
+                        cellar: "Sediment settles firmly but with a warm influence. Perfect for racking robust red wines to clarify while retaining structure."
+                    },
+                    "earth-Ascending": {
+                        synthesis: "A rare combination where gravity-heavy Earth energy is pulled upward.",
+                        field: "Good for hoeing/cultivation to aerate heavy soils without drying them. Ideal for grafting rootstock.",
+                        cellar: "Wines may taste 'closed' or overly tannic. Avoid critical tasting sessions. Good for routine lab analysis."
+                    },
+                    "earth-Descending": {
+                        synthesis: "The 'Double Earth' effect. Maximum gravity and grounding.",
+                        field: "The absolute best time for planting, transplanting, and deep tillage. Apply Prep 500 (Horn Manure) in late afternoon.",
+                        cellar: "Sedimentation is rapid. Rack heavy reds and lees-aged whites. Wines are chemically stable and grounded."
+                    },
+                    "air-Ascending": {
+                        synthesis: "Light forces are expanding into the atmosphere. High volatility.",
+                        field: "The ideal moment for Prep 501 (Horn Silica) to structure the canopy. Spraying flowering vines now aids fruit set.",
+                        cellar: "Volatiles are active. Perfect for bottling aromatic whites (Riesling, Sauvignon Blanc) to capture top-notes. Aerative pump-overs work well."
+                    },
+                    "air-Descending": {
+                        synthesis: "Light forces are drawn into the soil ecosystem.",
+                        field: "Good for working the soil to introduce nitrogen (air) to roots. Trellis maintenance and canopy trimming.",
+                        cellar: "Clarification via filtration is aided by the air element. Wines are expressive but stable. Good for barrel work."
+                    },
+                    "water-Ascending": {
+                        synthesis: "High turgidity and upward fluid movement. Fungal Danger Zone.",
+                        field: "Rapid shoot growth. **Do not prune**; bleeding will be severe. Monitor for mildew. Avoid liquid handling if possible.",
+                        cellar: "Avoid bottling; risk of bacterial spoilage or re-fermentation is higher. Wines feel 'diluted' or watery."
+                    },
+                    "water-Descending": {
+                        synthesis: "Fluids are drawn down into the earth. Internal hydration.",
+                        field: "Best time for irrigation; water penetrates deeply. Making compost heaps now integrates moisture well.",
+                        cellar: "Wines can be reductive (smell damp). Racking is possible but ensure plenty of oxygen exposure. Avoid filtration."
+                    }
+                };
+                return db[combo] || { synthesis: "Standard day.", field: "Standard maintenance.", cellar: "Monitor fermentations." };
+            },
+
+            updateTooltips: function(sign, isAscending, isPerigee) {
+                // Helper to build HTML
+                const build = (astro, bio, vitiTitle, vitiObj) => `
+                    <div class="tt-section">
+                        <span class="tt-header text-sky-400">Astronomy</span>
+                        <span class="text-slate-300 text-xs">${astro}</span>
+                    </div>
+                    <div class="tt-section">
+                        <span class="tt-header text-emerald-400">General Biodynamic</span>
+                        <span class="text-slate-300 text-xs">${bio}</span>
+                    </div>
+                    <div>
+                        <span class="tt-header text-indigo-400">${vitiTitle}</span>
+                        <div class="mb-2">
+                            <span class="text-indigo-200 text-xs font-bold">Synthesis:</span>
+                            <span class="text-slate-300 text-xs">${vitiObj.synthesis}</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-indigo-200 text-xs font-bold">In the Vineyard:</span>
+                            <span class="text-slate-300 text-xs">${vitiObj.field}</span>
+                        </div>
+                        <div>
+                            <span class="text-indigo-200 text-xs font-bold">In the Cellar:</span>
+                            <span class="text-slate-300 text-xs">${vitiObj.cellar}</span>
+                        </div>
+                    </div>
+                `;
+
+                // 1. ZODIAC CARD TOOLTIP (The main synthesis)
+                const vitiContext = this.getDeepVitiContext(sign, isAscending);
+                const zodiacAstro = "The Sidereal constellation currently behind the Moon.";
+                const bioTips = {
+                    "fire": "Fire (Fruit): Warmth. Focus on seed production, beans, tomatoes.",
+                    "earth": "Earth (Root): Gravity. Focus on potatoes, carrots, onions.",
+                    "air": "Air (Flower): Light. Focus on broccoli, flowers, herbs.",
+                    "water": "Water (Leaf): Fluidity. Focus on lettuce, spinach, watering."
+                };
+                document.getElementById('zodiacTooltip').innerHTML = build(
+                    zodiacAstro, 
+                    bioTips[sign.element], 
+                    "Viticulture & Wine Synthesis",
+                    vitiContext
+                );
+
+                // 2. PATH CARD TOOLTIP
+                const pathAstro = "The Moon's declination (height in sky) relative to the celestial equator.";
+                const pathBio = isAscending 
+                    ? "Ascending (Summer mood): Earth breathes out. Sap flows upward. Good for grafting and harvest." 
+                    : "Descending (Winter mood): Earth breathes in. Sap flows to roots. Good for transplanting and composting.";
+                
+                // For path, we simplify the Citi object to focus on flow
+                const pathVitiObj = isAscending
+                    ? { synthesis: "Upward flow. Volatility.", field: "Apply Prep 501. Harvest. Graft.", cellar: "Gases expand. Aromatics are high. Bottling allowed." }
+                    : { synthesis: "Downward flow. Sedimentation.", field: "Apply Prep 500. Plant. Prune.", cellar: "Particles precipitate. Rack wines. Clarify." };
+
+                document.getElementById('pathTooltip').innerHTML = build(pathAstro, pathBio, "Sap Flow Dynamics", pathVitiObj);
+
+                // 3. DISTANCE CARD TOOLTIP
+                const distAstro = "Moon's proximity to Earth. Perigee=Closest, Apogee=Furthest.";
+                const distBio = isPerigee 
+                    ? "Perigee: Intense moisture & gravitational stress. Poor germination. Fungal risk." 
+                    : "Apogee/Avg: Balanced forces. Good for seed saving (Apogee) or general work.";
+                
+                const distVitiObj = isPerigee
+                    ? { synthesis: "Chaos / Stress.", field: "High mildew pressure. Do not spray or prune.", cellar: "Wines are unstable/nervous. Postpone bottling." }
+                    : { synthesis: "Crystalline / Stable.", field: "Standard operations. Good for planting (Apogee).", cellar: "Good for long-term storage decisions." };
+
+                document.getElementById('distTooltip').innerHTML = build(distAstro, distBio, "Gravitational Influence", distVitiObj);
+            },
+
+            update: function() {
+                const now = new Date();
+                const targetDate = new Date(now.getTime() + (this.currentOffset * 24 * 60 * 60 * 1000));
+                
+                const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+                document.getElementById('dateDisplay').innerText = targetDate.toLocaleDateString('en-NZ', options);
+
+                const data = Astro.calculate(targetDate);
+
+                // VISUALS
+                this.renderMoon(data.phaseAngle);
+                document.getElementById('illumination').innerText = Math.round(data.illumination * 100) + "% Illumination";
+                document.getElementById('distLabel').innerText = Math.round(data.distance).toLocaleString() + " km";
+
+                let phaseName = "";
+                const pa = data.phaseAngle; 
+                if(pa < 5 || pa > 355) phaseName = "New Moon";
+                else if(pa < 85) phaseName = "Waxing Crescent";
+                else if(pa < 95) phaseName = "First Quarter";
+                else if(pa < 175) phaseName = "Waxing Gibbous";
+                else if(pa < 185) phaseName = "Full Moon";
+                else if(pa < 265) phaseName = "Waning Gibbous";
+                else if(pa < 275) phaseName = "Last Quarter";
+                else phaseName = "Waning Crescent";
+                document.getElementById('phaseName').innerText = phaseName;
+
+                // DATA
+                const sign = this.getZodiacFromLongitude(data.siderealLongitude);
+                const sunSign = this.getZodiacFromLongitude(data.sunSidereal);
+                
+                document.getElementById('zodiacName').innerText = sign.name;
+                document.getElementById('zodiacType').innerText = sign.type;
+                document.getElementById('zodiacIcon').innerText = sign.icon;
+                
+                // SOLAR PHENOLOGY (Hemisphere Aware)
+                const hem = this.hemisphere === 'north' ? 'North' : 'South';
+                const vinePhase = this.getVinePhase(sunSign.name, hem);
+                document.getElementById('vinePhase').innerText = vinePhase;
+                document.getElementById('sunSign').innerText = "Sun in " + sunSign.name;
+
+                // DYNAMIC SOLAR TOOLTIP
+                const solarDesc = this.getSolarDescription(sunSign.name, hem);
+                document.getElementById('solarTooltip').innerHTML = `
+                    <span class="tt-header text-amber-400">Solar Season: ${sunSign.name} (${hem})</span>
+                    <span class="text-slate-300 text-xs">${solarDesc}</span>
+                `;
+
+                // DISTANCE
+                const distStatusEl = document.getElementById('distStatus');
+                const distDescEl = document.getElementById('distDesc');
+                let isPerigee = false;
+                if(data.distance < 365000) {
+                    distStatusEl.innerText = "Perigee (Critical)";
+                    distDescEl.innerText = "Extreme proximity. High stress.";
+                    distStatusEl.className = "text-xl font-bold text-purple-400";
+                    isPerigee = true;
+                } else if(data.distance > 404000) {
+                    distStatusEl.innerText = "Apogee (Far)";
+                    distDescEl.innerText = "Max distance. Low germination.";
+                    distStatusEl.className = "text-xl font-bold text-blue-300";
+                } else {
+                    distStatusEl.innerText = "Average";
+                    distDescEl.innerText = "Neutral orbital phase.";
+                    distStatusEl.className = "text-xl font-bold text-slate-300";
+                }
+
+                // PATH
+                const tomorrow = new Date(targetDate.getTime() + 86400000);
+                const dataTom = Astro.calculate(tomorrow);
+                const isDeclinationIncreasing = dataTom.declination > data.declination; 
+
+                let isAscending = false;
+                if (this.hemisphere === 'north') isAscending = isDeclinationIncreasing;
+                else isAscending = !isDeclinationIncreasing;
+
+                const pathTitle = document.getElementById('pathStatus');
+                const pathDesc = document.getElementById('pathDesc');
+                const pathIcon = document.getElementById('pathIcon');
+                
+                if(isAscending) {
+                    pathTitle.innerText = "Ascending";
+                    pathTitle.className = "text-xl font-bold text-sky-300";
+                    pathDesc.innerText = "Sap Rising. Energy moves up.";
+                    pathIcon.innerText = "↗️";
+                } else {
+                    pathTitle.innerText = "Descending";
+                    pathTitle.className = "text-xl font-bold text-emerald-300";
+                    pathDesc.innerText = "Sap Falling. Energy moves down.";
+                    pathIcon.innerText = "↘️";
+                }
+
+                // NODE CHECK
+                const isNode = Math.abs(data.latitude) < 0.5; 
+                const nodeAlert = document.getElementById('nodeAlert');
+                if(isNode) nodeAlert.classList.remove('hidden');
+                else nodeAlert.classList.add('hidden');
+
+                // ACTION ENGINE
+                const advice = this.generateAdvice(sign, isAscending, isPerigee, isNode, phaseName);
+                document.getElementById('primaryAction').innerText = advice.action;
+                document.getElementById('primaryReason').innerText = advice.reason;
+                
+                const cautionEl = document.getElementById('cautionAction');
+                cautionEl.innerText = advice.caution;
+                if(advice.caution !== "None") cautionEl.className = "text-lg font-bold text-red-400";
+                else cautionEl.className = "text-lg font-bold text-emerald-400";
+
+                // UPDATE TOOLTIPS (New Rich Logic)
+                this.updateTooltips(sign, isAscending, isPerigee);
+
+                // DRAW CHART
+                this.drawChart(now);
+            },
+
+            // --- CANVAS RENDERER ---
+            renderMoon: function(phaseAngle) {
+                const cvs = document.getElementById('moonRenderCanvas');
+                const ctx = cvs.getContext('2d');
+                const w = cvs.width;
+                const h = cvs.height;
+                const cx = w/2; 
+                const cy = h/2;
+                const r = w/2;
+
+                ctx.clearRect(0,0,w,h);
+                ctx.fillStyle = "rgba(5, 8, 16, 0.9)";
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI*2);
+                ctx.fill();
+
+                ctx.globalCompositeOperation = 'destination-out';
+                const isWaxing = phaseAngle < 180;
+                
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, -Math.PI/2, Math.PI/2, !isWaxing);
+                ctx.fill();
+                
+                const bulgeWidth = r * Math.cos(phaseAngle * Astro.RAD);
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, Math.abs(bulgeWidth), r, 0, 0, Math.PI*2);
+                
+                if (isWaxing) {
+                    if (phaseAngle < 90) { 
+                         ctx.globalCompositeOperation = 'source-over';
+                         ctx.fill();
+                    } else { 
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.fill();
+                    }
+                } else {
+                    if (phaseAngle < 270) { 
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.fill();
+                    } else { 
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.fill();
+                    }
+                }
+                ctx.globalCompositeOperation = 'source-over';
+            },
+
+            drawChart: function(centerDate) {
+                const cvs = document.getElementById('chartCanvas');
+                const ctx = cvs.getContext('2d');
+                
+                const rect = cvs.parentNode.getBoundingClientRect();
+                cvs.width = rect.width;
+                cvs.height = rect.height;
+                const w = cvs.width;
+                const h = cvs.height;
+
+                const daysToShow = 20; 
+                const pxPerDay = w / daysToShow;
+                const startOffset = this.currentOffset - (daysToShow/2);
+                const nowTime = new Date().getTime();
+
+                ctx.clearRect(0,0,w,h);
+
+                const getX = (dOffset) => (dOffset - startOffset) * pxPerDay;
+                const midY = h/2;
+                const amp = h/4;
+
+                for(let i=0; i<daysToShow + 1; i+=0.2) {
+                    const dOff = startOffset + i;
+                    const d = new Date(nowTime + dOff*86400000);
+                    const data = Astro.calculate(d);
+                    const zodiac = app.getZodiacFromLongitude(data.siderealLongitude);
+                    const x = getX(dOff);
+                    ctx.fillStyle = zodiac.color + "15"; 
+                    ctx.fillRect(x, 0, pxPerDay * 0.2 + 2, h);
+                }
+
+                function drawWave(color, dataFn, yOff=0, dashed=false) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    if(dashed) ctx.setLineDash([4,4]);
+                    else ctx.setLineDash([]);
+                    for(let i=0; i<=daysToShow; i+=0.2) {
+                        const dOff = startOffset + i;
+                        const d = new Date(nowTime + dOff*86400000);
+                        const val = dataFn(Astro.calculate(d));
+                        const x = getX(dOff);
+                        const y = midY + yOff - (val * amp);
+                        if(i===0) ctx.moveTo(x,y);
+                        else ctx.lineTo(x,y);
+                    }
+                    ctx.stroke();
+                }
+
+                drawWave("#38bdf8", (d) => -Math.cos(d.phaseAngle * Astro.RAD), -40); 
+                const declFlip = app.hemisphere === 'north' ? 1 : -1;
+                drawWave("#34d399", (d) => (d.declination / 28) * declFlip, 40); 
+                drawWave("#c084fc", (d) => ((384400 - d.distance) / 20000), 0, true);
+
+                const centerX = w/2;
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(255,255,255,0.5)";
+                ctx.lineWidth = 1;
+                ctx.setLineDash([]);
+                ctx.moveTo(centerX, 0);
+                ctx.lineTo(centerX, h);
+                ctx.stroke();
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
